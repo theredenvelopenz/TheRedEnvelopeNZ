@@ -199,9 +199,151 @@ const reveal = new IntersectionObserver((entries)=>{
   });
 },{threshold:.12});
 
-document.querySelectorAll('.service-card,.intro>div,.section-head>*,.manifesto-card,.contact-inner').forEach(el=>{
+document.querySelectorAll('.service-card,.intro>div,.section-head>*,.manifesto-card,.contact-inner,.game-head>*').forEach(el=>{
   el.style.opacity='0';
   el.style.transform='translateY(22px)';
   el.style.transition='opacity .8s ease, transform .8s cubic-bezier(.2,.7,.2,1)';
   reveal.observe(el);
 });
+
+/* ---- Preloader ---- */
+(function preloader(){
+  const el = document.querySelector('#preloader');
+  const pctEl = document.querySelector('#preloaderPct');
+  if (!el) return;
+  document.body.style.overflow = 'hidden';
+  const duration = reduceMotion ? 300 : 1200;
+  const start = performance.now();
+  function tick(now){
+    const t = Math.min(1, (now - start) / duration);
+    const pct = Math.round(t * 100);
+    if (pctEl) pctEl.textContent = pct;
+    if (t < 1) {
+      requestAnimationFrame(tick);
+    } else {
+      el.classList.add('preloader-hide');
+      document.body.style.overflow = '';
+      setTimeout(() => el.remove(), 500);
+    }
+  }
+  requestAnimationFrame(tick);
+})();
+
+/* ---- Catch the Luck mini-game (inspired by fruit-slicing style interactive games) ---- */
+(function luckGame(){
+  const stageEl = document.querySelector('#gameStage');
+  const canvas = document.querySelector('#gameCanvas');
+  if (!stageEl || !canvas) return;
+  const ctx = canvas.getContext('2d');
+  const scoreEl = document.querySelector('#gameScore');
+  const freezeBtn = document.querySelector('#gameFreeze');
+  const startOverlay = document.querySelector('#gameStartOverlay');
+  const startBtn = document.querySelector('#gameStartBtn');
+
+  let W, H, dpr;
+  function resize(){
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = stageEl.clientWidth;
+    H = stageEl.clientHeight;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  let running = false, score = 0, frozen = false, freezeCooldown = false;
+  let envelopes = [];
+  let spawnTimer = 0;
+  const EMOJI = '🧧';
+  const maxSpeed = reduceMotion ? 0.5 : 1;
+
+  function spawn(){
+    const size = 30 + Math.random()*22;
+    envelopes.push({
+      x: Math.random() * (W - size) + size/2,
+      y: -size,
+      size,
+      vy: (0.6 + Math.random()*1.1) * maxSpeed,
+      rot: (Math.random()-0.5)*0.6,
+      vr: (Math.random()-0.5)*0.02,
+      caught: false,
+      life: 1,
+    });
+  }
+
+  function pointInEnvelope(px, py, e){
+    const dx = px - e.x, dy = py - e.y;
+    return Math.sqrt(dx*dx + dy*dy) < e.size * 0.62;
+  }
+
+  function handleHit(clientX, clientY){
+    if (!running) return;
+    const r = canvas.getBoundingClientRect();
+    const px = clientX - r.left, py = clientY - r.top;
+    for (const e of envelopes) {
+      if (!e.caught && pointInEnvelope(px, py, e)) {
+        e.caught = true;
+        score++;
+        scoreEl.textContent = score;
+        break;
+      }
+    }
+  }
+  canvas.addEventListener('pointerdown', (ev) => handleHit(ev.clientX, ev.clientY));
+
+  freezeBtn.addEventListener('click', () => {
+    if (!running || freezeCooldown) return;
+    frozen = true;
+    freezeBtn.classList.add('active');
+    freezeCooldown = true;
+    setTimeout(() => { frozen = false; freezeBtn.classList.remove('active'); }, 1500);
+    setTimeout(() => { freezeCooldown = false; }, 6000);
+  });
+
+  function loop(ts){
+    if (!running) return;
+    ctx.clearRect(0,0,W,H);
+
+    spawnTimer -= 16;
+    if (spawnTimer <= 0 && !frozen) {
+      spawn();
+      spawnTimer = 650 + Math.random()*500;
+    }
+
+    ctx.font = '32px serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    envelopes = envelopes.filter(e => e.y < H + 60 && e.life > 0);
+    for (const e of envelopes) {
+      if (e.caught) {
+        e.life -= 0.08;
+      } else if (!frozen) {
+        e.y += e.vy * 2.1;
+        e.rot += e.vr;
+      }
+      ctx.save();
+      ctx.translate(e.x, e.y);
+      ctx.rotate(e.rot);
+      ctx.globalAlpha = e.caught ? Math.max(e.life,0) : 1;
+      const scale = (e.size/32) * (e.caught ? (1 + (1-e.life)*0.6) : 1);
+      ctx.font = `${32*scale}px serif`;
+      ctx.fillText(EMOJI, 0, 0);
+      ctx.restore();
+    }
+    requestAnimationFrame(loop);
+  }
+
+  startBtn.addEventListener('click', () => {
+    running = true;
+    score = 0;
+    scoreEl.textContent = 0;
+    envelopes = [];
+    spawnTimer = 0;
+    startOverlay.classList.add('hidden');
+    requestAnimationFrame(loop);
+  });
+})();

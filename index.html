@@ -1,1 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="The Red Envelope NZ — practical, creative marketing for businesses and solo entrepreneurs.">
+<title>The Red Envelope NZ — Marketing that moves business</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="noise"></div>
 
+<header class="nav">
+  <a class="brand" href="#top"><span class="brand-mark">福</span><span>The Red Envelope <b>NZ</b></span></a>
+  <nav><a href="#services">Services</a><a href="#approach">Approach</a><a href="#contact">Contact</a></nav>
+  <a class="nav-cta" href="mailto:theredenvelopenz@gmail.com">Let's talk <span>↗</span></a>
+</header>
+
+<!-- Persistent mascot: follows the journey, reacts as you scroll, and opens a chat on click -->
+<div class="mascot-hud" id="mascotHud">
+  <button type="button" class="mascot-toggle" id="mascotToggle" aria-haspopup="dialog" aria-expanded="false" aria-controls="chatPanel" aria-label="Chat with our team">
+    <span class="hud-bubble" id="hudBubble">Need a hand?</span>
+    <img src="assets/doggo.webp" alt="" class="hud-dog">
+  </button>
+
+  <div class="chat-panel" id="chatPanel" role="dialog" aria-label="Chat with The Red Envelope NZ" hidden>
+    <div class="chat-header">
+      <img src="assets/doggo.webp" alt="" class="chat-avatar">
+      <div class="chat-header-text">
+        <div class="chat-title">The Red Envelope NZ</div>
+        <div class="chat-status"><span class="dot"></span> Usually replies fast</div>
+      </div>
+      <button type="button" class="chat-close" id="chatClose" aria-label="Close chat">&times;</button>
+    </div>
+    <div class="chat-messages" id="chatMessages" aria-live="polite"></div>
+    <form class="chat-input-row" id="chatForm">
+      <input type="text" id="chatInput" placeholder="Ask us anything…" autocomplete="off" aria-label="Type your message" maxlength="300">
+      <button type="submit" aria-label="Send message">↗</button>
+    </form>
+  </div>
+</div>
+
+<main>
+<section class="hero" id="top">
+  <div class="hero-copy">
+    <div class="eyebrow"><span></span> MARKETING • STRATEGY • GROWTH</div>
+    <h1>Make your business<br><em>impossible to ignore.</em></h1>
+    <p class="lede">The Red Envelope NZ helps businesses and solo entrepreneurs turn good ideas into clearer brands, stronger marketing and measurable momentum.</p>
+    <div class="hero-actions">
+      <a class="button button-primary" href="mailto:theredenvelopenz@gmail.com?subject=Let's%20grow%20my%20business">Start a conversation <span>→</span></a>
+      <a class="button button-ghost" href="#services">Explore what we do</a>
+    </div>
+    <div class="trust-row"><span>Strategy</span><i></i><span>Creative</span><i></i><span>Digital</span><i></i><span>Growth</span></div>
+  </div>
+
+  <div class="hero-stage" id="stage">
+    <div class="orb orb-a"></div><div class="orb orb-b"></div>
+    <div class="ring ring-one"></div><div class="ring ring-two"></div>
+    <div class="spark s1">✦</div><div class="spark s2">✧</div><div class="spark s3">✦</div>
+
+    <div class="card-wrap" id="card">
+      <div class="card-glow"></div>
+      <img src="assets/business-card.png" alt="The Red Envelope NZ business card" class="business-card">
+    </div>
+
+    <div class="dog-wrap" id="dog">
+      <div class="dog-leash"></div>
+      <img src="assets/doggo.webp" alt="The Red Envelope NZ mascot" class="dog">
+      <div class="shadow"></div>
+    </div>
+
+    <div class="stage-label label-top">GOOD IDEAS<br><b>DESERVE TO MOVE</b></div>
+    <div class="stage-label label-bottom">AUCKLAND · NZ</div>
+    <div class="scroll-hint"><span></span> SCROLL — HE'S COMING</div>
+  </div>
+</section>
+
+<section class="marquee"><div>CLARITY <span>✦</span> CREATIVITY <span>✦</span> CONSISTENCY <span>✦</span> GROWTH <span>✦</span> CLARITY <span>✦</span> CREATIVITY <span>✦</span></div></section>
+
+<section class="intro section dog-scene" id="idea">
+  <div class="section-kicker">01 / THE IDEA</div>
+  <div>
+    <div class="scene-tag">THE DOG HAS THE PLAN <span>●</span></div>
+    <h2>Marketing shouldn't feel like<br><em>throwing things at the wall.</em></h2>
+    <p>We bring strategy and creative thinking together so every message, campaign and customer touchpoint has a job to do.</p>
+    <div class="mini-dog-stage">
+      <img src="assets/doggo.webp" alt="" class="scene-dog dog-runner">
+      <div class="scene-card"><img src="assets/business-card.png" alt=""></div>
+      <span class="motion-line ml1"></span><span class="motion-line ml2"></span>
+    </div>
+  </div>
+</section>
+
+<section class="services section" id="services">
+  <div class="section-head">
+    <div class="section-kicker">02 / WHAT WE DO</div>
+    <h2>From “I need more customers”<br>to a <em>plan that actually moves.</em></h2>
+  </div>
+  <div class="service-grid">
+    <article class="service-card featured" data-dog-message="Good choice.">
+      <span class="number">01</span><div class="icon">◎</div>
+      <h3>Marketing Strategy</h3><p>Positioning, offers, audiences and practical growth plans that make sense for your business.</p><a href="#contact">Build the plan →</a>
+    </article>
+    <article class="service-card" data-dog-message="Make it memorable.">
+      <span class="number">02</span><div class="icon">✦</div>
+      <h3>Brand & Creative</h3><p>Sharper messaging and a distinctive visual direction that makes people remember you.</p><a href="#contact">Shape the brand →</a>
+    </article>
+    <article class="service-card" data-dog-message="Let's get moving.">
+      <span class="number">03</span><div class="icon">↗</div>
+      <h3>Digital Marketing</h3><p>Web, social, content and campaigns designed around attention, trust and conversion.</p><a href="#contact">Grow online →</a>
+    </article>
+    <article class="service-card" data-dog-message="I'll stick around.">
+      <span class="number">04</span><div class="icon">⌁</div>
+      <h3>Marketing Support</h3><p>Need a marketing brain on call? Get flexible support without building a full internal team.</p><a href="#contact">Get support →</a>
+    </article>
+  </div>
+</section>
+
+<section class="manifesto section" id="approach">
+  <div class="manifesto-card">
+    <div class="section-kicker">03 / OUR APPROACH</div>
+    <h2>Serious about results.<br><em>Not serious about being boring.</em></h2>
+    <div class="approach-grid">
+      <div><b>01</b><strong>Find the signal</strong><p>We cut through noise and identify what makes your business worth choosing.</p></div>
+      <div><b>02</b><strong>Make it clear</strong><p>Simple beats complicated. Your customers should understand your value quickly.</p></div>
+      <div><b>03</b><strong>Make it move</strong><p>We turn the strategy into actions, campaigns and creative that create momentum.</p></div>
+    </div>
+    <div class="approach-dog">
+      <img src="assets/doggo.webp" alt="">
+      <div class="approach-card"><img src="assets/business-card.png" alt=""></div>
+      <span>ON THE MOVE ↗</span>
+    </div>
+  </div>
+</section>
+
+<section class="contact section" id="contact">
+  <div class="contact-inner">
+    <div class="section-kicker">04 / LET'S TALK</div>
+    <h2>You've got the business.<br><em>Let's give it more momentum.</em></h2>
+    <p>Tell us what you're working on, where you're stuck, or where you want to go. We'll start there.</p>
+    <a class="contact-link" href="mailto:theredenvelopenz@gmail.com?subject=Marketing%20enquiry">theredenvelopenz@gmail.com <span>↗</span></a>
+    <div class="contact-meta">theredenvelopenz.com <span>•</span> New Zealand</div>
+  </div>
+  <div class="contact-dog-wrap">
+    <div class="contact-note">LET'S DO THIS.</div>
+    <img src="assets/doggo.webp" alt="" class="contact-dog">
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="brand"><span class="brand-mark">福</span><span>The Red Envelope <b>NZ</b></span></div>
+  <span>© 2026 The Red Envelope NZ</span><a href="#top">Back to top ↑</a>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>

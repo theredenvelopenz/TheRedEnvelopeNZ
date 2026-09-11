@@ -106,16 +106,19 @@
   </div>
 </section>
 
-<section class="intro section dog-scene" id="idea">
+<section class="intro section" id="idea">
   <div class="section-kicker">01 / THE IDEA</div>
   <div>
-    <div class="scene-tag">THE DOG HAS THE PLAN <span>●</span></div>
+    <div class="scene-tag">WATCH IT OPEN <span>●</span></div>
     <h2>Marketing shouldn't feel like<br><em>throwing things at the wall.</em></h2>
     <p>We bring strategy and creative thinking together so every message, campaign and customer touchpoint has a job to do.</p>
-    <div class="mini-dog-stage">
-      <img src="doggo.webp" alt="" class="scene-dog dog-runner">
-      <div class="scene-card"><img src="business-card.png" alt=""></div>
-      <span class="motion-line ml1"></span><span class="motion-line ml2"></span>
+    <div class="envelope-stage" id="envelopeStage">
+      <canvas id="envelopeCanvas"></canvas>
+      <div class="envelope-window ew-1"><b>Strategy</b><span>Positioning &amp; growth plans</span></div>
+      <div class="envelope-window ew-2"><b>Brand &amp; Creative</b><span>Look, voice, memorability</span></div>
+      <div class="envelope-window ew-3"><b>Digital Marketing</b><span>Web, social, campaigns</span></div>
+      <div class="envelope-window ew-4"><b>Marketing Support</b><span>An on-call marketing brain</span></div>
+      <div class="envelope-reveal" id="envelopeReveal">Clarity. Creativity. Growth.</div>
     </div>
   </div>
 </section>
@@ -154,11 +157,6 @@
       <div><b>02</b><strong>Make it clear</strong><p>Simple beats complicated. Your customers should understand your value quickly.</p></div>
       <div><b>03</b><strong>Make it move</strong><p>We turn the strategy into actions, campaigns and creative that create momentum.</p></div>
     </div>
-    <div class="approach-dog">
-      <img src="doggo.webp" alt="">
-      <div class="approach-card"><img src="business-card.png" alt=""></div>
-      <span>ON THE MOVE ↗</span>
-    </div>
   </div>
 </section>
 
@@ -170,10 +168,6 @@
     <a class="contact-link" href="mailto:theredenvelopenz@gmail.com?subject=Marketing%20enquiry">theredenvelopenz@gmail.com <span>↗</span></a>
     <div class="contact-meta">theredenvelopenz.com <span>•</span> New Zealand</div>
   </div>
-  <div class="contact-dog-wrap">
-    <div class="contact-note">LET'S DO THIS.</div>
-    <img src="doggo.webp" alt="" class="contact-dog">
-  </div>
 </section>
 </main>
 
@@ -183,6 +177,7 @@
 </footer>
 
 <script type="module" src="hero-webgl.js"></script>
+<script type="module" src="envelope-scene.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

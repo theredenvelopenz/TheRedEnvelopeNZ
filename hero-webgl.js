@@ -1,4 +1,4 @@
-import * as THREE from './vendor/three.module.min.js';
+import * as THREE from './three.module.min.js';
 
 const canvas = document.querySelector('#heroWebgl');
 const stage = document.querySelector('#stage');

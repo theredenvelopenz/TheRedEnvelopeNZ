@@ -160,24 +160,6 @@ function updateMascot() {
 window.addEventListener('scroll', updateMascot, {passive:true});
 updateMascot();
 
-/* The mid-page dog runs in with the envelope as its section enters view. */
-const runner = document.querySelector('.dog-runner');
-const miniStage = document.querySelector('.mini-dog-stage');
-if (runner && miniStage && !reduceMotion) {
-  const io = new IntersectionObserver((entries)=>{
-    entries.forEach(entry=>{
-      if(entry.isIntersecting){
-        runner.animate(
-          [{left:'-140px',transform:'rotate(-3deg)'},{left:'32%',transform:'rotate(4deg)'},{left:'32%',transform:'rotate(-2deg)'}],
-          {duration:1700,easing:'cubic-bezier(.2,.8,.2,1)',fill:'forwards'}
-        );
-        io.unobserve(entry.target);
-      }
-    });
-  },{threshold:.35});
-  io.observe(miniStage);
-}
-
 /* Services become little "dog reactions" on hover. */
 document.querySelectorAll('.service-card').forEach((service)=>{
   service.addEventListener('mouseenter',()=>{

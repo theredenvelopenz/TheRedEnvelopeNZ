@@ -15,6 +15,7 @@ const chatInput = document.querySelector('#chatInput');
 
 const INTENTS = [
   { id:'greeting', keys:['hi','hello','hey','yo','sup','gday','good boy','woof'], reply:"Hey! I'm Scrappy Coco, the Red Envelope mascot. Ask me about services, pricing, how we work, or just tell me what you're stuck on." },
+  { id:'name', keys:['your name','what are you called','who are you','name is'], reply:"I'm Scrappy Coco — the Red Envelope NZ mascot. I fetch business cards, guard the till, and apparently answer chat questions too now." },
   { id:'pricing', keys:['price','cost','pricing','budget','how much','rate','fee','expensive','afford','quote'], reply:"It depends on scope, so we keep pricing honest and specific to you rather than selling fixed packages. Tell us a bit about your business at theredenvelopenz@gmail.com and we'll put a real number to it." },
   { id:'services', keys:['service','services','offer','do you do','help with','what do you do'], reply:"Five things, mainly: NFC review cards, booking-ready websites, video ads, print & branding, and private review audits. Want detail on one of those?" },
   { id:'nfc', keys:['nfc','tap to review','review card','tap card','counter stand','table talker','google review'], reply:"Custom-branded tap-to-review NFC cards, counter displays or table talkers. A customer taps their phone at checkout and your 5-star Google review page opens — no typing, no searching." },

@@ -17,42 +17,75 @@ if (canvas && stage) {
   const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
   camera.position.set(0, 0, 9);
 
-  const RED = 0x7a2230, RED_DARK = 0x5c1a24, RED_FLAP = 0x8a2836, GOLD = 0xd5a25c;
+  const RED_DARK = 0x5c1a24, GOLD = 0xd5a25c;
 
   const envelope = new THREE.Group();
   scene.add(envelope);
 
-  function tri(p1, p2, p3, color) {
+  // Planar UV based on each triangle's own bounding box, so texture crops map cleanly.
+  function tri(p1, p2, p3, material) {
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array([...p1, ...p2, ...p3]), 3));
+    const xs = [p1[0], p2[0], p3[0]], ys = [p1[1], p2[1], p3[1]];
+    const minX = Math.min(...xs), maxX = Math.max(...xs) || 1;
+    const minY = Math.min(...ys), maxY = Math.max(...ys) || 1;
+    const uv = new Float32Array([p1, p2, p3].flatMap(p => [
+      (p[0] - minX) / (maxX - minX || 1),
+      (p[1] - minY) / (maxY - minY || 1),
+    ]));
+    geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
     geo.computeVertexNormals();
-    return new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide }));
+    return new THREE.Mesh(geo, material);
   }
 
   const border = new THREE.Mesh(new THREE.PlaneGeometry(4.4, 2.9), new THREE.MeshBasicMaterial({ color: GOLD, side: THREE.DoubleSide }));
   border.position.z = -0.03;
   envelope.add(border);
 
-  const back = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 2.7), new THREE.MeshBasicMaterial({ color: RED, side: THREE.DoubleSide }));
+  // Texture the envelope with the real card artwork: bottom portion (the branding)
+  // goes on the body, top portion (the gold chevron trim) goes on the flap, so the
+  // closed envelope reads as the same card, split at the natural flap crease.
+  const loader = new THREE.TextureLoader();
+  const cardTexBase = loader.load('business-card.png');
+  cardTexBase.colorSpace = THREE.SRGBColorSpace;
+
+  const FLAP_FRACTION = 0.42; // top 42% of the artwork = the chevron trim area
+
+  const bodyTex = cardTexBase.clone();
+  bodyTex.needsUpdate = true;
+  bodyTex.repeat.set(1, 1 - FLAP_FRACTION);
+  bodyTex.offset.set(0, 0);
+
+  const flapTex = cardTexBase.clone();
+  flapTex.needsUpdate = true;
+  flapTex.repeat.set(1, FLAP_FRACTION);
+  flapTex.offset.set(0, 1 - FLAP_FRACTION);
+
+  const back = new THREE.Mesh(
+    new THREE.PlaneGeometry(4.2, 2.7),
+    new THREE.MeshBasicMaterial({ map: bodyTex, side: THREE.DoubleSide })
+  );
   envelope.add(back);
 
-  envelope.add(tri([-2.1, 1.35, 0.01], [-2.1, -1.35, 0.01], [0, 0, 0.01], RED_DARK));
-  envelope.add(tri([2.1, 1.35, 0.01], [2.1, -1.35, 0.01], [0, 0, 0.01], RED_DARK));
-  envelope.add(tri([-2.1, -1.35, 0.02], [2.1, -1.35, 0.02], [0, 0, 0.02], 0x6a1e29));
+  const sideMat = new THREE.MeshBasicMaterial({ color: RED_DARK, side: THREE.DoubleSide });
+  envelope.add(tri([-2.1, 1.35, 0.01], [-2.1, -1.35, 0.01], [0, 0, 0.01], sideMat));
+  envelope.add(tri([2.1, 1.35, 0.01], [2.1, -1.35, 0.01], [0, 0, 0.01], sideMat));
+  envelope.add(tri([-2.1, -1.35, 0.02], [2.1, -1.35, 0.02], [0, 0, 0.02], new THREE.MeshBasicMaterial({ color: 0x481219, side: THREE.DoubleSide })));
 
   const flapHinge = new THREE.Group();
   flapHinge.position.set(0, 1.35, 0.03);
   envelope.add(flapHinge);
-  const flap = tri([-2.1, 0, 0], [2.1, 0, 0], [0, -1.35, 0], RED_FLAP);
+  const flapMat = new THREE.MeshBasicMaterial({ map: flapTex, side: THREE.DoubleSide });
+  const flap = tri([-2.1, 0, 0], [2.1, 0, 0], [0, -1.35, 0], flapMat);
   flapHinge.add(flap);
   const seal = new THREE.Mesh(new THREE.CircleGeometry(0.3, 32), new THREE.MeshBasicMaterial({ color: GOLD, side: THREE.DoubleSide }));
   seal.position.set(0, -0.66, 0.01);
   flapHinge.add(seal);
-  const sealMark = new THREE.Mesh(new THREE.RingGeometry(0.1, 0.14, 24), new THREE.MeshBasicMaterial({ color: RED, side: THREE.DoubleSide }));
+  const sealMark = new THREE.Mesh(new THREE.RingGeometry(0.1, 0.14, 24), new THREE.MeshBasicMaterial({ color: 0x7a2230, side: THREE.DoubleSide }));
   sealMark.position.set(0, -0.66, 0.02);
   flapHinge.add(sealMark);
 
-  // Gold particle burst (same soft-sprite technique as the hero background)
+  // Gold particle burst (soft-sprite technique shared in spirit with the hero background)
   const spriteCanvas = document.createElement('canvas');
   spriteCanvas.width = spriteCanvas.height = 64;
   const sctx = spriteCanvas.getContext('2d');
@@ -90,6 +123,19 @@ if (canvas && stage) {
     setTimeout(() => revealEl && revealEl.classList.add('show'), delay);
     windows.forEach((w, i) => setTimeout(() => w.classList.add('show'), delay + 250 + i * 160));
   }
+
+  // Mouse parallax: a gentle tilt toward the cursor, layered on top of whatever
+  // the opening timeline is doing.
+  let targetTiltX = 0, targetTiltY = 0, tiltX = 0, tiltY = 0;
+  stage.addEventListener('pointermove', (e) => {
+    if (reduceMotion) return;
+    const r = stage.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width - 0.5;
+    const y = (e.clientY - r.top) / r.height - 0.5;
+    targetTiltY = x * 0.3;
+    targetTiltX = y * -0.18;
+  });
+  stage.addEventListener('pointerleave', () => { targetTiltX = 0; targetTiltY = 0; });
 
   const OPEN_DELAY = 850, OPEN_DUR = 650, FLY_DUR = 900;
 
@@ -129,11 +175,9 @@ if (canvas && stage) {
         fromPos.y + (0.1 - fromPos.y) * fe,
         0
       );
-      envelope.rotation.set(
-        fromRot.x + (0 - fromRot.x) * fe,
-        fromRot.y + (0 - fromRot.y) * fe,
-        fromRot.z + (0 - fromRot.z) * fe
-      );
+      const settledRotX = fromRot.x + (0 - fromRot.x) * fe;
+      const settledRotY = fromRot.y + (0 - fromRot.y) * fe;
+      const settledRotZ = fromRot.z + (0 - fromRot.z) * fe;
       const s = fromScale + (1 - fromScale) * fe;
       envelope.scale.set(s, s, s);
 
@@ -155,9 +199,13 @@ if (canvas && stage) {
         pMat.opacity = Math.max(0, 1 - bt / 1.4);
       }
 
-      if (t > FLY_DUR) {
-        envelope.position.y = 0.1 + Math.sin(t * 0.0016) * 0.05;
-      }
+      // Smoothed mouse-parallax tilt, layered on top of the settle/idle rotation.
+      tiltX += (targetTiltX - tiltX) * 0.05;
+      tiltY += (targetTiltY - tiltY) * 0.05;
+      const idleBob = t > FLY_DUR ? Math.sin(t * 0.0016) * 0.05 : 0;
+      const idleSway = t > FLY_DUR ? Math.sin(t * 0.0011) * 0.04 : 0;
+      envelope.position.y = envelope.position.y + idleBob;
+      envelope.rotation.set(settledRotX + tiltX, settledRotY + tiltY + idleSway, settledRotZ);
 
       renderer.render(scene, camera);
       requestAnimationFrame(frame);

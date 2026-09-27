@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>The Red Envelope — Premium Hóng Bāo for Lunar New Year</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%A7%A7%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  :root { color-scheme: dark; }
+  html,body{background:#0a0503;}
+  body{font-family:Inter,sans-serif;overscroll-behavior:none;}
+  .font-display{font-family:'Cormorant Garamond',serif;}
+  .font-mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  .slide-in{transition:transform .5s cubic-bezier(.16,1,.3,1);}
+  .fade{transition:opacity .35s ease;}
+  @keyframes drift{0%{transform:translateY(0) rotate(0deg);}50%{transform:translateY(-14px) rotate(6deg);}100%{transform:translateY(0) rotate(0deg);}}
+  @keyframes flicker{0%,100%{filter:drop-shadow(0 0 10px #ff8a3c88) drop-shadow(0 0 22px #ffce6b55);}50%{filter:drop-shadow(0 0 16px #ff5a2caa) drop-shadow(0 0 30px #ffce6b88);}}
+  .drift{animation:drift 6s ease-in-out infinite;}
+  .flicker{animation:flicker 2.6s ease-in-out infinite;}
+  #bg-canvas{position:fixed;inset:0;width:100%;height:100%;z-index:0;display:block;}
+  #bg-skeleton{position:fixed;inset:0;z-index:5;background:linear-gradient(120deg,#160b08,#241209,#160b08);background-size:200% 200%;animation:skeletonPulse 1.6s ease-in-out infinite;transition:opacity .5s ease;}
+  @keyframes skeletonPulse{0%{background-position:0% 50%;}50%{background-position:100% 50%;}100%{background-position:0% 50%;}}
+</style>
+</head>
+<body class="text-[#f5ece0] selection:bg-[#e14b3a] selection:text-[#f7ecd9] overflow-x-hidden min-h-screen">
+<canvas id="bg-canvas"></canvas>
+<div id="bg-skeleton"></div>
+<video id="bg-video" src="assets/hongbao-video.mp4" muted loop playsInline webkit-playsinline="true" autoplay style="position:fixed;inset:0;width:100%;height:100%;opacity:0;pointer-events:none;z-index:-1;"></video>
+<div id="root" class="relative" style="z-index:2;"></div>
+<script>
+(function(){
+  var canvas = document.getElementById('bg-canvas');
+  var video = document.getElementById('bg-video');
+  var skeleton = document.getElementById('bg-skeleton');
+
+  function hideSkeleton(){
+    if (!skeleton) return;
+    skeleton.style.opacity = '0';
+    setTimeout(function(){ if (skeleton.parentNode) skeleton.parentNode.removeChild(skeleton); }, 550);
+  }
+
+  var isMobile = window.matchMedia('(max-width: 767px)').matches;
+  var supportsWebGL = (function(){
+    try { var c = document.createElement('canvas'); return !!(window.WebGLRenderingContext && (c.getContext('webgl') || c.getContext('experimental-webgl'))); }
+    catch (e) { return false; }
+  })();
+
+  var tryPlay = function(){ video.play().catch(function(){}); };
+  video.muted = true;
+  video.defaultMuted = true;
+
+  /* Responsive fallback: skip the WebGL scene entirely on phones / no-WebGL browsers.
+     Plain looping <video> costs far less battery than a shader pass every frame. */
+  if (isMobile || !supportsWebGL) {
+    canvas.style.display = 'none';
+    Object.assign(video.style, {
+      position: 'fixed', inset: '0', width: '100%', height: '100%',
+      objectFit: 'cover', opacity: '1', pointerEvents: 'none', zIndex: '0'
+    });
+    var overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:1;pointer-events:none;background:radial-gradient(circle at 50% 42%, rgba(10,5,3,0) 35%, rgba(10,5,3,.6) 100%);';
+    document.body.insertBefore(overlay, document.getElementById('root'));
+    video.addEventListener('loadeddata', hideSkeleton, { once: true });
+    tryPlay();
+    video.addEventListener('canplay', tryPlay);
+    document.addEventListener('click', tryPlay, { once: true });
+    document.addEventListener('touchstart', tryPlay, { once: true });
+    return;
+  }
+
+  var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  if (renderer.outputEncoding !== undefined) renderer.outputEncoding = THREE.sRGBEncoding;
+  var scene = new THREE.Scene();
+  var camera = new THREE.Camera();
+  var texture = new THREE.VideoTexture(video);
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  if (texture.encoding !== undefined) texture.encoding = THREE.sRGBEncoding;
+
+  var VIDEO_ASPECT = 1280 / 720;
+  var material = new THREE.ShaderMaterial({
+    uniforms: {
+      map: { value: texture },
+      planeAspect: { value: 1 },
+      videoAspect: { value: VIDEO_ASPECT },
+      time: { value: 0 },
+      zoom: { value: 1 },
+      darken: { value: 0 },
+      tint: { value: new THREE.Color(0x2a0a08) }
+    },
+    vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position, 1.0); }",
+    fragmentShader: [
+      "uniform sampler2D map;",
+      "uniform float planeAspect;",
+      "uniform float videoAspect;",
+      "uniform float time;",
+      "uniform float zoom;",
+      "uniform float darken;",
+      "uniform vec3 tint;",
+      "varying vec2 vUv;",
+      "float rand(vec2 co){ return fract(sin(dot(co.xy, vec2(12.9898,78.233))) * 43758.5453); }",
+      "void main(){",
+      "  float ar = planeAspect / videoAspect;",
+      "  vec2 ratio = vec2(min(ar,1.0), min(1.0/ar,1.0));",
+      "  vec2 uv = vec2(vUv.x * ratio.x + (1.0-ratio.x)*0.5, vUv.y * ratio.y + (1.0-ratio.y)*0.5);",
+      "  uv = (uv - 0.5) / zoom + 0.5;",
+      "  vec3 color = texture2D(map, uv).rgb;",
+      "  color = mix(color, tint, 0.05);",
+      "  float d = distance(vUv, vec2(0.5));",
+      "  color *= smoothstep(0.9, 0.3, d) * 0.35 + 0.65;",
+      "  color *= (1.0 - darken * 0.4);",
+      "  float grain = (rand(vUv * time) - 0.5) * 0.03;",
+      "  color += grain;",
+      "  gl_FragColor = vec4(color, 1.0);",
+      "}"
+    ].join("\n")
+  });
+  var mesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
+  scene.add(mesh);
+
+  function resize() {
+    var w = window.innerWidth, h = window.innerHeight;
+    renderer.setSize(w, h);
+    material.uniforms.planeAspect.value = w / h;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  /* Scroll-sequenced narrative: the background slowly pushes in and dims as the
+     page is read, instead of sitting static behind the copy. */
+  var scrollT = 0;
+  function onScroll() {
+    var max = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1);
+    scrollT = Math.min(Math.max(window.scrollY / max, 0), 1);
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  video.addEventListener('loadeddata', hideSkeleton, { once: true });
+  tryPlay();
+  video.addEventListener('canplay', tryPlay);
+  document.addEventListener('click', tryPlay, { once: true });
+  document.addEventListener('touchstart', tryPlay, { once: true });
+
+  function animate(t) {
+    material.uniforms.time.value = t * 0.001;
+    material.uniforms.zoom.value = 1 + scrollT * 0.12;
+    material.uniforms.darken.value = scrollT;
+    renderer.render(scene, camera);
+    requestAnimationFrame(animate);
+  }
+  requestAnimationFrame(animate);
+})();
+</script>
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef } = React;
+
+const RED = "#e14b3a";
+const GOLD = "#d9a53a";
+const CREAM = "#f5ece0";
+const INK = "#2b1a12";
+const MUTED = "#c9b8a0";
+const LOGO_SRC = "assets/red-envelope-logo.png";
+
+const Icon = ({ path, size = 18, color = "currentColor", ...p }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}>{path}</svg>
+);
+const Envelope = (p) => <Icon {...p} path={<><path d="M3 6h18v12H3z" /><path d="m3 6 9 7 9-7" /></>} />;
+const Sparkles = (p) => <Icon {...p} path={<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2 2M16 16l2 2M18 6l-2 2M8 16l-2 2" />} />;
+const Menu = (p) => <Icon {...p} path={<path d="M3 6h18M3 12h18M3 18h18" />} />;
+const X = (p) => <Icon {...p} path={<path d="M18 6 6 18M6 6l12 12" />} />;
+const ShoppingBag = (p) => <Icon {...p} path={<><path d="M6 8h12l-1 12H7L6 8Z" /><path d="M9 8V6a3 3 0 0 1 6 0v2" /></>} />;
+const Plus = (p) => <Icon {...p} path={<path d="M12 5v14M5 12h14" />} />;
+const Minus = (p) => <Icon {...p} path={<path d="M5 12h14" />} />;
+const PhoneCall = (p) => <Icon {...p} path={<path d="M15 8a2 2 0 0 1 2 2M15 4a6 6 0 0 1 6 6M4 5c0 8 7 15 15 15l2-4-5-2-2 2A12 12 0 0 1 8 10l2-2-2-5-4 2Z" />} />;
+const ArrowRight = (p) => <Icon {...p} path={<path d="M5 12h14M13 6l6 6-6 6" />} />;
+const Gem = (p) => <Icon {...p} path={<><path d="M6 3h12l4 6-10 12L2 9Z" /><path d="M2 9h20M8 3l2 6-2 12M16 3l-2 6 2 12" /></>} />;
+
+const HIGHLIGHTS = [
+  { icon: Gem, title: "22K Gold Foil Detail", desc: "Hand-stamped auspicious motifs on every envelope." },
+  { icon: Envelope, title: "Silk-Finish Paper", desc: "Heavyweight stock that feels as good as it looks." },
+  { icon: Sparkles, title: "Blessed for Prosperity", desc: "Designs drawn from centuries of New Year tradition." },
+];
+const NAV_ITEMS = ["Collections", "Gift Sets", "Our Story", "Traditions"];
+
+function Toast({ message, show }) {
+  return (
+    <div className={"fixed top-24 left-1/2 -translate-x-1/2 z-[70] fade " + (show ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-3 pointer-events-none")}
+         style={{ transition: "opacity .3s ease, transform .3s ease" }}>
+      <div className="flex items-center gap-3 bg-[#150a07] text-[#f7ecd9] px-6 py-3 rounded-2xl shadow-2xl border border-[#d9a53a]/30">
+        <span className="w-2 h-2 rounded-full" style={{ background: GOLD }}></span>
+        <span className="text-sm font-medium">{message}</span>
+      </div>
+    </div>
+  );
+}
+
+function Navbar({ scrolled, onMenu, onContact }) {
+  return (
+    <header className={"fixed top-0 left-0 w-full z-40 transition-all duration-300 " + (scrolled ? "bg-black/55 backdrop-blur-md py-4 border-b border-[#d9a53a]/20" : "bg-transparent py-6")}>
+      <div className="max-w-[1680px] mx-auto px-8 lg:px-12 flex items-center justify-between">
+        <div className="flex items-center gap-2 px-4 py-2 bg-black/40 backdrop-blur-md border border-[#d9a53a]/30 rounded-xl">
+          <Envelope size={17} color={GOLD} />
+          <span className="font-display font-semibold tracking-tight text-[19px] leading-[20px]">The Red Envelope</span>
+        </div>
+        <div className="flex items-center gap-2.5">
+          <button onClick={onMenu} className="p-2.5 rounded-xl bg-black/40 border border-[#d9a53a]/30 hover:bg-black/60 transition-colors">
+            <Menu size={18} />
+          </button>
+          <button onClick={onContact} className="px-5 py-2.5 rounded-xl font-semibold shadow-md text-[15px] text-[#f7ecd9] hover:opacity-95 hover:scale-[1.02] active:scale-[0.98] transition-transform" style={{ background: RED }}>
+            Contact Us
+          </button>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function Drawer({ open, onClose, active, setActive, notify, onContact }) {
+  return (
+    <>
+      <div onClick={onClose} className={"fixed inset-0 bg-black/50 backdrop-blur-sm z-40 fade " + (open ? "opacity-100" : "opacity-0 pointer-events-none")} />
+      <div className={"fixed top-0 right-0 w-80 h-full bg-[#150a07] border-l border-[#d9a53a]/20 z-50 p-6 flex flex-col justify-between shadow-2xl slide-in " + (open ? "translate-x-0" : "translate-x-full")}>
+        <div>
+          <div className="flex items-center justify-between mb-10">
+            <div className="flex items-center gap-2 font-display font-semibold text-xl"><Envelope size={18} color={GOLD} /> The Red Envelope</div>
+            <button onClick={onClose} className="p-1.5 rounded-full bg-white/5 border border-white/10"><X size={16} /></button>
+          </div>
+          <nav className="flex flex-col gap-1">
+            {NAV_ITEMS.map((item) => (
+              <button key={item} onClick={() => { setActive(item); notify("Navigated to " + item); }}
+                className={"text-left text-lg font-medium py-2 transition-colors " + (active === item ? "" : "text-[#c9b8a0] hover:text-[#f5ece0]")}
+                style={active === item ? { color: GOLD } : {}}>
+                {item}
+              </button>
+            ))}
+          </nav>
+        </div>
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <span className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center"><PhoneCall size={16} color={GOLD} /></span>
+            <div>
+              <div className="text-[11px] font-mono uppercase tracking-widest text-[#c9b8a0]">Customer Care</div>
+              <div className="text-sm font-medium">+64 9 555 0198</div>
+            </div>
+          </div>
+          <button onClick={onContact} className="w-full flex items-center justify-center gap-2 rounded-xl py-3 font-bold text-[#f7ecd9]" style={{ background: RED }}>
+            Contact Us <ArrowRight size={16} />
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function HighlightCard({ icon: Icon2, title, desc, i, revealed }) {
+  return (
+    <div className="flex items-center gap-4 bg-black/35 backdrop-blur-md border border-[#d9a53a]/25 rounded-[20px] p-[18px] w-full sm:w-[300px] hover:border-[#d9a53a]/50 hover:bg-black/50 transition-all duration-300"
+         style={{ opacity: revealed ? 1 : 0, transform: revealed ? "translateX(0)" : "translateX(20px)", transition: `opacity .5s ease ${0.15 + i * 0.12}s, transform .5s ease ${0.15 + i * 0.12}s` }}>
+      <span className="w-11 h-11 rounded-full border border-[#d9a53a]/40 flex items-center justify-center flex-shrink-0 bg-white/5"><Icon2 size={18} color={GOLD} /></span>
+      <div>
+        <div className="font-semibold text-[17px] text-[#f5ece0]">{title}</div>
+        <div className="text-[#c9b8a0] text-[15px] leading-[19px]">{desc}</div>
+      </div>
+    </div>
+  );
+}
+
+function CartPanel({ open, onClose, items, setItems, notify }) {
+  const total = items.reduce((s, it) => s + it.price * it.qty, 0);
+  const addSet = () => { setItems([{ name: "Gold Blossom Hóng Bāo Set (12)", price: 24.0, qty: 1 }]); notify("Added Gold Blossom Set to cart"); };
+  const changeQty = (idx, d) => setItems((prev) => prev.map((it, i) => i === idx ? { ...it, qty: Math.max(1, it.qty + d) } : it));
+  const remove = (idx) => setItems((prev) => prev.filter((_, i) => i !== idx));
+  return (
+    <>
+      <div onClick={onClose} className={"fixed inset-0 bg-black/55 backdrop-blur-sm z-50 fade " + (open ? "opacity-100" : "opacity-0 pointer-events-none")} />
+      <div className={"fixed top-0 right-0 w-full sm:w-[28rem] h-full bg-[#150a07] border-l border-[#d9a53a]/20 z-50 p-6 flex flex-col justify-between shadow-2xl slide-in " + (open ? "translate-x-0" : "translate-x-full")}>
+        <div>
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-2 font-semibold text-lg"><ShoppingBag size={18} color={GOLD} /> Your Cart ({items.length})</div>
+            <button onClick={onClose} className="p-1.5 rounded-full bg-white/5 border border-white/10"><X size={16} /></button>
+          </div>
+          {items.length === 0 ? (
+            <div className="flex flex-col items-center text-center gap-3 py-10">
+              <span className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center text-[#c9b8a0]"><ShoppingBag size={24} /></span>
+              <div className="font-semibold">Your cart is empty</div>
+              <p className="text-sm text-[#c9b8a0]">Bring good fortune to someone this year.</p>
+              <button onClick={addSet} className="px-4 py-2 rounded-xl font-semibold text-[#f7ecd9] text-sm" style={{ background: RED }}>Quick Add Gold Blossom Set</button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {items.map((it, idx) => (
+                <div key={it.name} className="bg-white/5 border border-[#d9a53a]/20 rounded-2xl p-4 flex items-center gap-3">
+                  <span className="text-2xl">🧧</span>
+                  <div className="flex-1">
+                    <div className="font-medium">{it.name}</div>
+                    <div className="font-mono text-sm" style={{ color: GOLD }}>${it.price.toFixed(2)}</div>
+                  </div>
+                  <div className="flex items-center gap-2 bg-white/5 rounded-lg border border-white/10 px-2 py-1">
+                    <button onClick={() => changeQty(idx, -1)}><Minus size={14} /></button>
+                    <span className="text-sm w-4 text-center">{it.qty}</span>
+                    <button onClick={() => changeQty(idx, 1)}><Plus size={14} /></button>
+                  </div>
+                  <button onClick={() => remove(idx)} className="text-xs text-red-400/80 hover:text-red-400">Remove</button>
+                </div>
+              ))}
+              <div className="bg-[#d9a53a]/10 border border-[#d9a53a]/25 rounded-2xl p-4 flex items-center gap-2 text-sm">
+                <Sparkles size={16} color={GOLD} /> Free gift wrapping unlocked!
+              </div>
+            </div>
+          )}
+        </div>
+        {items.length > 0 && (
+          <div className="space-y-2 pt-4 border-t border-[#d9a53a]/20">
+            <div className="flex justify-between text-sm text-[#c9b8a0]"><span>Subtotal</span><span>${total.toFixed(2)}</span></div>
+            <div className="flex justify-between text-sm"><span className="text-[#c9b8a0]">Shipping</span><span className="text-green-400">FREE</span></div>
+            <div className="flex justify-between font-mono font-semibold text-lg" style={{ color: GOLD }}><span>Total</span><span>${total.toFixed(2)}</span></div>
+            <button onClick={() => notify("Order placed — 恭喜发财!")} className="w-full rounded-xl py-3 font-bold text-[#f7ecd9] mt-2"
+                    style={{ background: RED, boxShadow: "0 8px 24px -6px #e14b3a55" }}>Proceed to Checkout</button>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+function ContactModal({ open, onClose, notify }) {
+  const submit = (e) => { e.preventDefault(); onClose(); notify("Message sent — we'll be in touch!"); };
+  return (
+    <div className={"fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4 fade " + (open ? "opacity-100" : "opacity-0 pointer-events-none")}>
+      <div className="max-w-md w-full bg-[#150a07] border border-[#d9a53a]/25 rounded-3xl p-6 sm:p-8 shadow-2xl"
+           style={{ transform: open ? "scale(1)" : "scale(0.9)", transition: "transform .25s ease" }}>
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="font-display text-2xl font-semibold">Get In Touch</h3>
+          <button onClick={onClose} className="p-1.5 rounded-full bg-white/5 border border-white/10"><X size={16} /></button>
+        </div>
+        <form onSubmit={submit} className="space-y-4">
+          {["Full Name", "Email Address"].map((label) => (
+            <div key={label}>
+              <label className="text-xs font-mono uppercase tracking-wider text-[#c9b8a0]">{label}</label>
+              <input required className="mt-1 w-full bg-white/5 border border-[#d9a53a]/25 rounded-xl px-4 py-3 text-sm outline-none text-[#f5ece0] placeholder:text-[#c9b8a0]/50" onFocus={(e)=>e.target.style.borderColor=GOLD} onBlur={(e)=>e.target.style.borderColor=""} />
+            </div>
+          ))}
+          <div>
+            <label className="text-xs font-mono uppercase tracking-wider text-[#c9b8a0]">Your Message</label>
+            <textarea required rows={3} className="mt-1 w-full bg-white/5 border border-[#d9a53a]/25 rounded-xl px-4 py-3 text-sm outline-none text-[#f5ece0] placeholder:text-[#c9b8a0]/50" onFocus={(e)=>e.target.style.borderColor=GOLD} onBlur={(e)=>e.target.style.borderColor=""} />
+          </div>
+          <button type="submit" className="w-full flex items-center justify-center gap-2 rounded-xl py-3 font-bold text-[#f7ecd9]" style={{ background: RED }}>
+            Send Message <ArrowRight size={16} />
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+/* Twin dragons forming a fiery figure-8, envelope rising through the crossing point */
+function DragonEnvelope({ revealed }) {
+  return (
+    <div className="relative w-full max-w-[440px] mx-auto" style={{ opacity: revealed ? 1 : 0, transition: "opacity .6s ease .5s" }}>
+      <svg viewBox="0 0 400 220" className="w-full h-auto flicker">
+        <defs>
+          <linearGradient id="fire" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#ffce6b" />
+            <stop offset="45%" stopColor="#ff7a3c" />
+            <stop offset="100%" stopColor="#c8102e" />
+          </linearGradient>
+        </defs>
+        <path d="M200,110 C160,50 80,50 58,110 C80,170 160,170 200,110" fill="none" stroke="url(#fire)" strokeWidth="6" strokeLinecap="round"
+              pathLength="1" strokeDasharray="1" style={{ strokeDashoffset: revealed ? 0 : 1, transition: "stroke-dashoffset 1.6s cubic-bezier(.16,1,.3,1) .2s" }} />
+        <path d="M200,110 C240,50 320,50 342,110 C320,170 240,170 200,110" fill="none" stroke="url(#fire)" strokeWidth="6" strokeLinecap="round"
+              pathLength="1" strokeDasharray="1" style={{ strokeDashoffset: revealed ? 0 : 1, transition: "stroke-dashoffset 1.6s cubic-bezier(.16,1,.3,1) .2s" }} />
+        {/* dragon head flourishes at outer loop tips */}
+        <path d="M58,110 l-16,-8 4,8 -4,8 z" fill="url(#fire)" />
+        <path d="M342,110 l16,-8 -4,8 4,8 z" fill="url(#fire)" />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center"
+           style={{ transform: revealed ? "translateY(0) scale(1)" : "translateY(40px) scale(.85)", opacity: revealed ? 1 : 0, transition: "transform .7s cubic-bezier(.16,1,.3,1) .5s, opacity .5s ease .5s" }}>
+        <div className="drift">
+          <svg width="120" height="150" viewBox="0 0 120 150">
+            <defs>
+              <linearGradient id="env" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#c8332b" /><stop offset="100%" stopColor="#8f1712" />
+              </linearGradient>
+            </defs>
+            <rect x="6" y="30" width="108" height="112" rx="10" fill="url(#env)" stroke={GOLD} strokeWidth="2.5" />
+            <path d="M6,30 L60,78 L114,30" fill="none" stroke={GOLD} strokeWidth="2.5" />
+            <circle cx="60" cy="88" r="20" fill="#f0c869" stroke="#8f1712" strokeWidth="1.5" />
+            <text x="60" y="96" textAnchor="middle" fontSize="20" fill="#8f1712" fontFamily="'Noto Sans TC','PingFang SC',sans-serif">福</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [scrolled, setScrolled] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [contactOpen, setContactOpen] = useState(false);
+  const [active, setActive] = useState("Collections");
+  const [items, setItems] = useState([]);
+  const [toast, setToast] = useState({ msg: "", show: false });
+  const [revealed, setRevealed] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", onScroll);
+    const t = setTimeout(() => setRevealed(true), 1000);
+    return () => { window.removeEventListener("scroll", onScroll); clearTimeout(t); };
+  }, []);
+
+  const notify = (msg) => {
+    setToast({ msg, show: true });
+    setTimeout(() => setToast((t) => ({ ...t, show: false })), 3000);
+  };
+
+  return (
+    <div className="relative min-h-screen text-[#f5ece0] overflow-x-hidden">
+      <Toast message={toast.msg} show={toast.show} />
+      <Navbar scrolled={scrolled} onMenu={() => setDrawerOpen(true)} onContact={() => setContactOpen(true)} />
+      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} active={active} setActive={setActive} notify={notify} onContact={() => { setDrawerOpen(false); setContactOpen(true); }} />
+      <CartPanel open={cartOpen} onClose={() => setCartOpen(false)} items={items} setItems={setItems} notify={notify} />
+      <ContactModal open={contactOpen} onClose={() => setContactOpen(false)} notify={notify} />
+
+      <button onClick={() => setCartOpen(true)} className="fixed bottom-6 right-8 z-30 flex items-center gap-2 px-4 py-2.5 bg-black/40 border border-[#d9a53a]/30 rounded-xl backdrop-blur-md hover:bg-black/60 transition-colors">
+        <ShoppingBag size={16} color={GOLD} /> <span className="text-sm font-medium">Cart ({items.length})</span>
+      </button>
+
+      <main className="relative min-h-screen pt-32 pb-20 flex items-center justify-center z-10">
+        <div className="max-w-[1680px] mx-auto px-8 lg:px-12 w-full grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+          <div className="lg:col-span-5 order-2 lg:order-1 z-20"
+               style={{ opacity: revealed ? 1 : 0, transform: revealed ? "translateY(0)" : "translateY(16px)", transition: "opacity .6s ease .1s, transform .6s ease .1s" }}>
+            <p className="font-display italic text-lg text-[#e2836f] mb-2">Lunar New Year, delivered with meaning</p>
+            <h1 className="font-display font-semibold tracking-tight text-[2.6rem] sm:text-[3.4rem] lg:text-[58px] leading-[1.08] text-[#f5ece0]">
+              Fortune, wrapped<br />in gold and red.
+            </h1>
+            <p className="mt-5 text-[#c9b8a0] max-w-sm">Premium hóng bāo crafted for the year ahead — gifted, treasured, remembered.</p>
+            <button className="mt-7 inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-[#f7ecd9]" style={{ background: RED }}>
+              Shop the Collection <ArrowRight size={16} />
+            </button>
+          </div>
+          <div className="lg:col-span-3 order-1 lg:order-2 h-[80px] lg:h-full flex items-center justify-center">
+            <DragonEnvelope revealed={revealed} />
+          </div>
+          <div className="lg:col-span-4 order-3 z-20 space-y-4 flex flex-col lg:items-end">
+            {HIGHLIGHTS.map((h, i) => <HighlightCard key={h.title} {...h} i={i} revealed={revealed} />)}
+          </div>
+        </div>
+      </main>
+
+      <footer className="relative z-10 py-8 px-8 border-t border-[#d9a53a]/15">
+        <div className="max-w-[1680px] mx-auto flex flex-col items-center gap-3">
+          <img src={LOGO_SRC} alt="The Red Envelope NZ" className="w-full max-w-[220px] rounded-md shadow-lg" />
+          <p className="text-[11px] font-mono uppercase tracking-widest text-[#d9a53a]/70">© {new Date().getFullYear()} The Red Envelope NZ</p>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
